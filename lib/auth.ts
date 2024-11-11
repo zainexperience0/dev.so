@@ -1,9 +1,13 @@
-import { PrismaClient } from "@prisma/client";
+import { auth } from "@/next-auth"
+import { useSession } from "next-auth/react"
 
-declare global {
-  var prisma: PrismaClient | undefined;
+export const currentUser = async () => {
+    const session = await auth()
+    return session?.user
 }
 
-export const db = globalThis.prisma || new PrismaClient();
 
-if (process.env.NODE_ENV !== "production") globalThis.prisma = db;
+export const useAuth = () => {
+    const session = useSession()
+    return session.data?.user
+}
