@@ -14,50 +14,42 @@ generator client {
 }
 
 model User {
-  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
   name          String?
-  username      String?      @unique
-  email         String?      @unique
+  username      String?        @unique
+  email         String?        @unique
   emailVerified DateTime?
-  emailVisible  Boolean      @default(false)
-  showInMembers Boolean      @default(true)
+  password      String?        @default("")
   image         String?
   accounts      Account[]
   communities   Community[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  spaceGroups   SpaceGroup[]
+  members       Member[]
+  posts         Post[]
+  spaces        Space[]
+  comments      Comment[]
+  likes         Like[]
+  notifications Notification[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
-enum communityType {
-  PUBLIC
-  PRIVATE
+enum NotificationType {
+  INBOX
+  MENTIONS
+  FOLLOWING
+  ALL
+  ARCHIEVED
 }
 
-enum Theme {
-  DARK
-  LIGHT
-}
-
-model Community {
-  id                   String        @id @default(auto()) @map("_id") @db.ObjectId
-  name                 String        @unique
-  type                 communityType @default(PUBLIC)
-  color                String?
-  logo                 String?
-  position             Int
-  coverImage           String?
-  theme                Theme @default(DARK)
-  icon                 String?
-  inviteCode           String
-  enableFeed           Boolean       @default(true)
-  enableGettingStarted Boolean       @default(true)
-  url                  String        @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String @db.ObjectId
+model Notification {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  type      NotificationType @default(ALL)
+  text      String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId    String           @db.ObjectId
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 }
 
 model Account {
@@ -80,4 +72,176 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+}
+
+enum communityType {
+  PUBLIC
+  PRIVATE
+}
+
+enum Theme {
+  DARK
+  LIGHT
+}
+
+model Community {
+  id                   String        @id @default(auto()) @map("_id") @db.ObjectId
+  name                 String        @unique
+  type                 communityType @default(PUBLIC)
+  color                String?
+  logo                 String?
+  position             Int
+  coverImage           String?
+  theme                Theme         @default(DARK)
+  icon                 String?
+  inviteCode           String
+  enableFeed           Boolean       @default(true)
+  enableGettingStarted Boolean       @default(true)
+  url                  String        @unique
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId String @db.ObjectId
+
+  links Link[]
+
+  spaceGroups SpaceGroup[]
+  spaces      Space[]
+
+  members Member[]
+
+  posts Post[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum MemberType {
+  ADMIN
+  MODERATOR
+  GUEST
+}
+
+model Member {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId      String     @db.ObjectId
+  community   Community  @relation(fields: [communityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  communityId String     @db.ObjectId
+  type        MemberType @default(GUEST)
+  posts       Post[]
+
+  comments     Comment[]
+  likes        Like[]
+  spaces       Space?     @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  spaceId      String?    @unique @db.ObjectId
+  spaceGroups  SpaceGroup @relation(fields: [spaceGroupId], references: [id])
+  spaceGroupId String     @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Link {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  url         String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  communityId String    @db.ObjectId
+  position    Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SpaceGroup {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  position    Int       @default(0)
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  communityId String    @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId      String    @db.ObjectId
+  posts       Post[]
+  spaces      Space[]
+  members     Member[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Space {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  url          String
+  icon         String
+  coverImage   String?
+  description  String?
+  position     Int        @default(0)
+  spaceGroup   SpaceGroup @relation(fields: [spaceGroupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  spaceGroupId String     @db.ObjectId
+  community    Community  @relation(fields: [communityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  communityId  String     @db.ObjectId
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId       String     @db.ObjectId
+  members      Member[]
+  posts        Post[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Post {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  coverImage  String?
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  communityId String    @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId      String    @db.ObjectId
+
+  spaceGroup   SpaceGroup @relation(fields: [spaceGroupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  spaceGroupId String     @db.ObjectId
+  member       Member     @relation(fields: [memberId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  memberId     String     @db.ObjectId
+
+  comments Comment[]
+  likes    Like[]
+  space    Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  spaceId  String    @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  text      String
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  postId    String    @db.ObjectId
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId    String    @db.ObjectId
+  member    Member    @relation(fields: [memberId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  memberId  String    @db.ObjectId
+  //multiple comments
+  replyToId String?   @db.ObjectId
+  replyTo   Comment?  @relation("ReplyTo", fields: [replyToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies   Comment[] @relation("ReplyTo")
+  likes     Like[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Like {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  postId    String?  @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId    String   @db.ObjectId
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  memberId  String   @db.ObjectId
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  commentId String?  @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
